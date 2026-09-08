@@ -1,0 +1,28 @@
+# personal: config with your discord application id, logs, caches
+/data/
+
+# built output
+/dist/
+/build/
+*.exe
+*.zip
+*.spec
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# editors and os
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# notes and drafts: only the readme belongs in the repo
+*.md
+!README.md
