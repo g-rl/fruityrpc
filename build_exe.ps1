@@ -4,6 +4,15 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $work = Join-Path $env:TEMP 'fruityrpc-build'
 $icon = Join-Path $here 'assets\fl_logo.ico'
 
+# stops rpc if running so it can build
+$running = Get-Process -Name 'FruityRPC', 'FruityRPC-Console' -ErrorAction SilentlyContinue |
+    Where-Object { $_.Path -and (Split-Path -Parent $_.Path) -eq $here }
+foreach ($process in $running) {
+    Write-Host "stopping $($process.ProcessName) (pid $($process.Id)) so its exe can be replaced"
+    Stop-Process -Id $process.Id -Force
+}
+if ($running) { $running | Wait-Process -Timeout 10 -ErrorAction SilentlyContinue }
+
 if (Test-Path $work) { Remove-Item $work -Recurse -Force }
 $stage = $work + '-bridge'
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
