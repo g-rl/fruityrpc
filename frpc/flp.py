@@ -1,24 +1,3 @@
-"""Read project facts straight out of the .flp file on disk.
-
-FL Studio only exposes a live project through its controller-scripting API,
-which has to be attached to a MIDI port before FL will run it. The saved
-project file needs none of that: an .flp is a short header followed by a
-stream of events, and the ones worth showing - how many channels, how many
-patterns, the tempo, the build that wrote it - sit in plain sight.
-
-The tradeoff is freshness: this reflects the last save, not the live project.
-The file is re-read whenever its timestamp changes.
-
-Layout::
-
-    "FLhd" <uint32 length> <int16 format><uint16 channels><uint16 ppq>
-    "FLdt" <uint32 length> <events...>
-
-An event is a one-byte id plus a payload whose size the id implies: ids under
-64 carry one byte, under 128 a word, under 192 a dword, and 192 and up a
-varint length followed by that many bytes of text or data.
-"""
-
 import os
 import struct
 import time
@@ -36,7 +15,6 @@ max_file_size = 128 * 1024 * 1024
 
 
 def recent_files_lists():
-    """FL Studio's own list of recently opened files."""
     paths = []
     userprofile = os.environ.get("USERPROFILE") or os.path.expanduser("~")
     roots = [os.path.join(userprofile, "Documents", "Image-Line"),
@@ -61,7 +39,6 @@ def recent_files_lists():
 
 
 def recent_projects():
-    """Recently opened .flp paths, newest first."""
     found = []
     for listing in recent_files_lists():
         try:
@@ -77,7 +54,6 @@ def recent_projects():
 
 
 def find_project(name):
-    """Full path of the open project, matched by the name in FL's title bar."""
     if not name:
         return ""
     wanted = os.path.basename(name).strip().lower()
@@ -94,7 +70,6 @@ def find_project(name):
 
 
 def _read_events(data):
-    """Yield ``(event_id, value)`` for every event in the data chunk."""
     position = 0
     length = len(data)
     while position < length:
@@ -138,7 +113,6 @@ def _text(value):
 
 
 def parse(path):
-    """Facts about a saved project, or ``{}`` if the file is not readable."""
     try:
         if os.path.getsize(path) > max_file_size:
             return {}
@@ -206,7 +180,6 @@ def parse(path):
 
 
 class ProjectFacts(object):
-    """Caches the parse and refreshes it when the file is saved again."""
 
     def __init__(self, logger=None):
         self.log = logger

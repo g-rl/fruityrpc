@@ -1,20 +1,9 @@
-"""Reader for the state file written by the optional FL Studio MIDI script.
-
-FL Studio's MIDI scripting API is the only supported way to see *inside* a
-running project: transport state, tempo, song position, pattern names,
-selected channel and mixer track. ``device_FruityRPC.py`` runs inside FL and
-dumps that information to ``%APPDATA%\\FruityRPC\\state.json`` a few times a
-second; this module reads it back, tolerating partial writes and a missing or
-stale file (in which case FruityRPC simply falls back to window titles).
-"""
-
 import json
 import os
 import time
 
 
 def _hardware_script_dirs():
-    """FL Studio Hardware folders where the bridge script may live."""
     try:
         from .install import hardware_dirs
     except Exception:
@@ -41,11 +30,6 @@ class MidiState(object):
         self.max_age = max_age
 
     def candidates(self):
-        """Every place the FL script may have written the state file.
-
-        It writes to the first location its interpreter allows, so the daemon
-        checks the same list and takes the freshest file it finds.
-        """
         folders = [os.path.dirname(self.path)]
         for hardware in _hardware_script_dirs():
             folders.append(hardware)
@@ -77,7 +61,6 @@ class MidiState(object):
         return newest, newest_time
 
     def read(self):
-        """Return the latest state dict, or ``{}`` when it is unusable."""
         path, mtime = self._freshest()
         if not path:
             self._note_live(False)

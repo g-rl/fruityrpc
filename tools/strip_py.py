@@ -1,5 +1,3 @@
-"""Rewrite Python sources with comments and docstrings removed."""
-
 import ast
 import io
 import os

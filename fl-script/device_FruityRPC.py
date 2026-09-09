@@ -1,29 +1,5 @@
 # name=FruityRPC
 # url=https://github.com/g-rl/frpc
-"""FruityRPC bridge script for FL Studio (optional "deep mode").
-
-FL Studio does not tell the outside world what is happening inside a project.
-This MIDI controller script runs *inside* FL, reads the transport, tempo,
-pattern, channel and mixer state a few times a second, and writes it to
-
-    %APPDATA%\\FruityRPC\\state.json
-
-The FruityRPC daemon picks that file up and uses it to enrich the Discord
-presence. FruityRPC works without this script (window titles only); with it
-you get BPM, play/record state, bar:beat position, pattern and channel names.
-
-Install
--------
-1. Run ``FruityRPC.bat --install-midi-script`` (or copy this file to
-   ``%APPDATA%\\Image-Line\\FL Studio\\Settings\\Hardware\\FruityRPC\\``).
-2. Restart FL Studio.
-3. Options > MIDI settings: select any input port (a loopMIDI virtual port
-   works, no real hardware needed), enable it, and set "Controller type" to
-   "FruityRPC".
-
-The script sends no MIDI, changes nothing in the project, and does nothing at
-all if the state file cannot be written.
-"""
 
 import json
 import os
@@ -39,13 +15,6 @@ _folder_cache = None
 
 
 def _candidate_folders():
-    """Everywhere the state file may be written, best first.
-
-    FL Studio runs this script inside its own interpreter, and how much of
-    the file system that interpreter may touch is not documented. Rather than
-    betting on one path, every plausible location is tried and the first one
-    that accepts a write is used; the daemon looks in the same list.
-    """
     folders = []
     if state_dir and not state_dir.startswith("__FRUITYRPC"):
         folders.append(state_dir)
@@ -83,7 +52,6 @@ def _usable(folder):
 
 
 def _folder():
-    """The first writable candidate, remembered once found."""
     global _folder_cache
     if _folder_cache:
         return _folder_cache
@@ -95,7 +63,6 @@ def _folder():
 
 
 def _log(message):
-    """Append a line to script.log so problems are visible from outside FL."""
     try:
         path = os.path.join(_folder(), "script.log")
         stamp = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -142,7 +109,6 @@ _state_path = None
 
 
 def _safe(function, default=None):
-    """Call an FL API function, swallowing anything it throws."""
     try:
         return function()
     except Exception:
@@ -167,7 +133,6 @@ def _tempo():
 
 
 def _position():
-    """Return (bar, beat, tick) parsed from FL's own position hint."""
     hint = _safe(lambda: transport.getSongPosHint(), "") or ""
     parts = [part.strip() for part in str(hint).replace(".", ":").split(":")]
     numbers = []
@@ -222,7 +187,6 @@ _mixer_cache = {"ts": 0.0, "used": None}
 
 
 def _effect_count(track):
-    """Plugins loaded in the effect slots of one mixer track."""
     if plugins is None or track is None or track < 0:
         return None
     count = 0
@@ -233,11 +197,6 @@ def _effect_count(track):
 
 
 def _mixer_used():
-    """Mixer inserts actually in use: renamed, or holding an effect.
-
-    FL always has the full bank of inserts, so reporting the raw track count
-    would just say "125" for every project.
-    """
     now = time.time()
     if now - _mixer_cache["ts"] < _mixer_scan_interval:
         return _mixer_cache["used"]
@@ -272,7 +231,6 @@ def _current_pattern():
 
 
 def collect():
-    """Snapshot everything FL is willing to tell us."""
     bar, beat, tick = _position()
     channel_name, channel_index = _selected_channel()
     mixer_name, mixer_index = _selected_mixer_track()

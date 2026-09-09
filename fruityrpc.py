@@ -1,10 +1,3 @@
-"""FruityRPC entry point.
-
-Run directly (``py -3 fruityrpc.py``) or through the launchers next to it:
-``FruityRPC.bat`` (visible console) and ``FruityRPC-Silent.vbs`` (no window,
-the one to point FL Studio's External tools at).
-"""
-
 import os
 import sys
 

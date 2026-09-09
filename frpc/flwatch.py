@@ -1,16 +1,3 @@
-"""FL Studio detection and introspection.
-
-Everything here is done with ctypes against the Win32 API, so there are no
-third-party dependencies and nothing has to be injected into FL Studio.
-
-The watcher is deliberately version-agnostic. A running FL Studio is found by
-matching *either* the executable name (``FL64.exe``, ``FL.exe``, ``FL32.exe``,
-renamed or portable builds via config) *or* the window title, which has
-contained the words "FL Studio" (and "Fruity Loops" before that) in every
-release. Project name, version and the focused sub-window are then parsed out
-of window titles, which works identically from FL Studio 9 to 2024+.
-"""
-
 import ctypes
 import os
 import re
@@ -95,13 +82,6 @@ def _window_class(hwnd):
 
 
 def clean_caption(text):
-    """Strip FL's private-use marker glyphs out of a window caption.
-
-    FL Studio embeds characters from the Unicode Private Use Area in its
-    captions and hints - they select icons in its own font, and everywhere
-    else (Discord included) they render as an empty box. "Fruity Parametric
-    EQ 2" should reach the presence as "Fruity Parametric EQ 2".
-    """
     if not text:
         return ""
     cleaned = []
@@ -144,7 +124,6 @@ def _process_path(pid):
 
 
 def _is_wow64(pid):
-    """True when a 32-bit process runs on 64-bit Windows."""
     handle = kernel32.OpenProcess(process_query_limited_information, False, pid)
     if not handle:
         return None
@@ -160,7 +139,6 @@ def _is_wow64(pid):
 
 
 def _file_version(path):
-    """Return the ``a.b.c.d`` version string of an exe, or ''."""
     if not path or version_dll is None:
         return ""
     try:
@@ -186,7 +164,6 @@ def _file_version(path):
 
 
 def idle_seconds():
-    """Seconds since the last keyboard or mouse input, system wide."""
     if not is_windows:
         return 0.0
     info = last_input_info()
@@ -212,17 +189,6 @@ bracket_pattern = re.compile(r"^\[(.+)\]$")
 
 
 def parse_title(title, config):
-    """Split an FL Studio main-window title into its parts.
-
-    Returns ``(project, unsaved, version)``. ``project`` is ``''`` when no
-    project is open. Handles the layouts FL has shipped over the years::
-
-        FL Studio 21 - my song
-        my song - FL Studio 20
-        FL Studio 12 (64 bit) - my song.flp
-        FL Studio 21.2 [my song *]
-        Fruity Loops 3 - my song
-    """
     formatting = config.get("formatting", {})
     detection = config.get("detection", {})
 
@@ -267,7 +233,6 @@ def parse_title(title, config):
 
 
 def _extract_project(title):
-    """Remove the application part of a title, leaving the project."""
     cleaned = bitness_pattern.sub("", title).strip()
 
     segments = [part.strip() for part in re.split(r"\s+[-–]\s+", cleaned)]
@@ -288,7 +253,6 @@ def _extract_project(title):
 
 
 class Snapshot(dict):
-    """Plain dict with attribute access, for readability at call sites."""
 
     def __getattr__(self, name):
         try:
@@ -307,7 +271,6 @@ empty_snapshot = Snapshot(
 
 
 class FLWatcher(object):
-    """Scans the desktop for FL Studio and reports what it is doing."""
 
     def __init__(self, config, logger=None):
         self.log = logger
@@ -368,16 +331,6 @@ class FLWatcher(object):
         return path
 
     def _looks_like_fl(self, hwnd, title, window_class):
-        """Decide whether ``hwnd`` is an FL Studio main window.
-
-        Three independent signals, any of which is enough on its own:
-
-        * the window class - ``TFruityLoopsMainForm`` has been FL's main form
-          class since the Fruity Loops days, and it does not change with the
-          interface language;
-        * the executable name;
-        * the window title.
-        """
         pid = wintypes.DWORD()
         user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
         if not pid.value:
@@ -395,7 +348,6 @@ class FLWatcher(object):
         return None
 
     def _collect_windows(self, pid):
-        """Every visible captioned top-level window belonging to ``pid``."""
         results = []
 
         @wnd_enum_proc
@@ -412,7 +364,6 @@ class FLWatcher(object):
         return results
 
     def _child_windows(self, hwnd):
-        """Visible captioned children: FL's Playlist, Mixer, Piano roll, ..."""
         results = []
 
         @wnd_enum_proc
@@ -427,7 +378,6 @@ class FLWatcher(object):
         return results
 
     def _focused_window(self, hwnd_main):
-        """``(caption, class)`` of the FL sub-window that has focus."""
         thread_id = user32.GetWindowThreadProcessId(hwnd_main, None)
         info = gui_thread_info()
         info.cbSize = ctypes.sizeof(info)
@@ -450,7 +400,6 @@ class FLWatcher(object):
 
 
     def poll(self):
-        """Return a :class:`Snapshot` of FL Studio right now."""
         if not is_windows:
             return Snapshot(empty_snapshot, idle_seconds=0.0)
 

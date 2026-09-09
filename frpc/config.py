@@ -1,12 +1,3 @@
-"""Configuration handling for FruityRPC.
-
-The config lives in ``%APPDATA%\\FruityRPC\\config.json``. It is created with
-documented defaults on first run, and any key missing from an existing file is
-filled in from the defaults, so upgrading never loses user edits.
-
-Keys whose name starts with ``//`` are comments and are ignored at runtime.
-"""
-
 import copy
 import json
 import os
@@ -21,11 +12,6 @@ _config_dir = None
 
 
 def install_root():
-    """The folder FruityRPC itself lives in.
-
-    For the packaged build that is the folder holding FruityRPC.exe, not the
-    temporary directory PyInstaller unpacks the code into.
-    """
     if getattr(sys, "frozen", False):
         return os.path.dirname(os.path.abspath(sys.executable))
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -44,18 +30,6 @@ def _writable(directory):
 
 
 def config_dir():
-    """Directory holding config, log and the MIDI-script state file.
-
-    Prefers a ``data`` folder inside the FruityRPC install. That is not just
-    tidiness: Python installed from the Microsoft Store runs inside an app
-    container that silently redirects writes to ``%APPDATA%`` into its own
-    private ``LocalCache`` folder. FL Studio's MIDI script runs in FL's own
-    interpreter and would write to the real ``%APPDATA%``, so the two would
-    never see the same file. A plain folder on disk is visible to both.
-
-    ``%APPDATA%\\FruityRPC`` is still used when the install folder is not
-    writable (e.g. FruityRPC placed in Program Files).
-    """
     global _config_dir
     override = os.environ.get("FRUITYRPC_HOME")
     if override:
@@ -73,7 +47,6 @@ def config_dir():
 
 
 def config_path():
-    """The config file in use: ``config.yml``, or a legacy ``config.json``."""
     folder = config_dir()
     modern = os.path.join(folder, "config.yml")
     if os.path.isfile(modern):
@@ -86,7 +59,6 @@ def config_path():
 
 
 def state_path():
-    """State file written by the optional FL Studio MIDI script."""
     return os.path.join(config_dir(), "state.json")
 
 
@@ -609,7 +581,6 @@ def _is_comment(key):
 
 
 def strip_comments(value):
-    """Return ``value`` with every ``//`` key removed, recursively."""
     if isinstance(value, dict):
         return {k: strip_comments(v) for k, v in value.items()
                 if not _is_comment(k)}
@@ -619,7 +590,6 @@ def strip_comments(value):
 
 
 def _merge(defaults, user):
-    """Deep-merge ``user`` over ``defaults``. Returns (merged, added_keys)."""
     added = []
     out = copy.deepcopy(defaults)
     for key, value in user.items():
@@ -639,10 +609,6 @@ def _merge(defaults, user):
 
 
 def load(path=None, create=True):
-    """Load the config, creating or topping up the file as needed.
-
-    Returns ``(config_without_comments, path, notes)``.
-    """
     path = path or config_path()
     notes = []
     raw = {}
@@ -691,7 +657,6 @@ def load(path=None, create=True):
 
 
 def _read(path):
-    """Read a config file, in YAML or the older JSON."""
     with open(path, "r", encoding="utf-8-sig") as handle:
         text = handle.read()
     if path.lower().endswith(".json"):
@@ -703,7 +668,6 @@ def _read(path):
 
 
 def save(config, path=None):
-    """Write the config back, in the format its file name asks for."""
     path = path or config_path()
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".tmp"

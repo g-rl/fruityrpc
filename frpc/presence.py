@@ -1,5 +1,3 @@
-"""Turns an FL Studio snapshot into a Discord activity payload."""
-
 import hashlib
 import re
 import string
@@ -12,7 +10,6 @@ _multi_space = re.compile(r"\s{2,}")
 
 
 def tidy(text):
-    """Clean up separators left behind by empty placeholders."""
     if not text:
         return ""
     text = _double_separator.sub("", text)
@@ -21,7 +18,6 @@ def tidy(text):
 
 
 class SafeFormatter(string.Formatter):
-    """``str.format`` that never raises: unknown fields become empty text."""
 
     def __init__(self, empty=""):
         super(SafeFormatter, self).__init__()
@@ -53,7 +49,6 @@ class SafeFormatter(string.Formatter):
             return str(value)
 
     def has_data(self, template, variables):
-        """True when every placeholder in ``template`` has a value."""
         try:
             fields = [name for _lit, name, _spec, _conv
                       in self.parse(template) if name]
@@ -67,16 +62,6 @@ class SafeFormatter(string.Formatter):
         return True
 
     def render(self, template, variables):
-        """Format ``template``, resolving ``[[optional groups]]`` first.
-
-        Anything wrapped in double square brackets disappears when one of the
-        placeholders inside it has no value, so a line like::
-
-            [[{bpm} BPM]][[ - {channel_count} channels]]
-
-        degrades cleanly to "24 channels" when the tempo is unknown instead of
-        leaving a stray " BPM - ".
-        """
         if not template:
             return ""
         try:
@@ -112,7 +97,6 @@ def _clean_number(value, decimals=0):
 
 
 def _count_label(value, words):
-    """``(40, ["Sound", "Sounds"])`` -> ``"40 Sounds"``; ``""`` if unknown."""
     try:
         number = int(value)
     except (TypeError, ValueError):
@@ -125,7 +109,6 @@ def _count_label(value, words):
 
 
 def _window_tail(caption):
-    """The part after the first separator: "Settings - Theme" -> "Theme"."""
     if not caption:
         return ""
     parts = re.split(r"\s+[-–›>]\s+", caption, 1)
@@ -151,7 +134,6 @@ fl_window_names = re.compile(
 
 
 class PresenceBuilder(object):
-    """Builds the activity dict, and decides which status applies."""
 
     def __init__(self, config, logger=None, catalog=None):
         self.log = logger
@@ -162,20 +144,6 @@ class PresenceBuilder(object):
         self.reconfigure(config)
 
     def pick_icon(self, project):
-        """The large image to use, honouring the icon setting at the top of
-        the config.
-
-        Accepts either a plain asset name or a block::
-
-            "icon": {"mode": "random", "choices": ["eevee", "pichu"]}
-
-        ``fixed`` uses ``name``; ``cycle`` steps through ``choices`` in order;
-        ``random`` picks one of them. Both rotating modes pick per time slot
-        rather than per tick, so the choice is stable between updates instead
-        of flickering, and with ``rotate_seconds`` at 0 a random icon is drawn
-        once per project. Anything the Discord application does not actually
-        have as an art asset falls back to the FL logo.
-        """
         setting = self.config.get("icon")
         fallback = "fl_logo"
 
@@ -387,12 +355,6 @@ class PresenceBuilder(object):
         return variables
 
     def _activity_text(self, window, window_class, variables):
-        """Pick the activity line for the focused FL window.
-
-        A rule can match on the window class (stable across FL versions and
-        interface languages) and/or on the caption; when both are given both
-        must match.
-        """
         activities = self.config.get("activities", {})
         default = activities.get("default", "Working on a track")
         default_short = activities.get("default_short", "FL Studio")
@@ -442,12 +404,6 @@ class PresenceBuilder(object):
 
 
     def _buttons(self, configured, variables):
-        """Discord shows at most two buttons.
-
-        The first stays pinned; anything past the second takes turns in the
-        remaining slot, so three or more links all get seen. Set
-        presence.button_rotation_seconds to 0 to keep the first two only.
-        """
         valid = []
         for button in configured or []:
             if not isinstance(button, dict):
@@ -476,7 +432,6 @@ class PresenceBuilder(object):
         return [valid[0], rotating[index]]
 
     def build(self, snapshot, midi):
-        """Return ``(activity_or_None, status, variables)``."""
         self._track_project(snapshot)
         status = self.pick_status(snapshot, midi)
 

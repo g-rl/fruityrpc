@@ -1,13 +1,3 @@
-"""Knows which art assets a Discord application actually has.
-
-Discord publishes the asset list of any application, so FruityRPC can check
-that a chosen icon really exists before asking for it. When it does not, the
-presence falls back to the FL logo instead of showing a blank square.
-
-The list is fetched in the background and cached on disk, so a slow or absent
-network never delays the polling loop.
-"""
-
 import json
 import os
 import threading
@@ -63,7 +53,7 @@ class AssetCatalog(object):
             with urllib.request.urlopen(request,
                                         timeout=request_timeout) as response:
                 payload = json.load(response)
-        except Exception as error:                      # noqa: BLE001
+        except Exception as error:
             if self.log:
                 self.log.debug("could not read the Discord asset list: %s"
                                % error)
@@ -81,7 +71,6 @@ class AssetCatalog(object):
                           % (", ".join(sorted(names)) or "none uploaded"))
 
     def refresh(self, force=False):
-        """Kick off a background refresh if the cache is stale."""
         if not self.client_id:
             return
         if not force and time.time() - self._fetched < refresh_seconds:
@@ -98,12 +87,6 @@ class AssetCatalog(object):
             return set(self._names) if self._names is not None else None
 
     def resolve(self, name, fallback="fl_logo"):
-        """``name`` if the application has it, otherwise ``fallback``.
-
-        An unknown asset list (no network yet, first run) is treated as
-        permission to try: a wrong guess costs one blank image, while
-        refusing would break a perfectly good icon.
-        """
         self.refresh()
         name = (name or "").strip()
         if not name:

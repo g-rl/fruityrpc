@@ -1,21 +1,3 @@
-"""A small YAML reader and writer for FruityRPC's own config.
-
-PyYAML is used when it happens to be installed; otherwise this handles the
-subset of YAML the config actually needs, so FruityRPC keeps working on a
-stock Python install:
-
-* nested mappings by indentation
-* block sequences, of scalars and of mappings
-* strings (plain, 'single' or "double" quoted), integers, floats,
-  true/false, null
-* ``#`` comments, whole-line or trailing
-* inline empty collections, ``[]`` and ``{}``
-
-Anything fancier - anchors, multi-line scalars, flow collections with real
-content - is not supported, and a file using them is reported as an error
-rather than being silently misread.
-"""
-
 import re
 
 try:
@@ -25,7 +7,7 @@ except ImportError:
 
 
 class YamlError(Exception):
-    """Raised when the config file cannot be understood."""
+    pass
 
 
 _int_pattern = re.compile(r"^[+-]?\d+$")
@@ -33,7 +15,6 @@ _float_pattern = re.compile(r"^[+-]?(\d+\.\d*|\.\d+|\d+)([eE][+-]?\d+)?$")
 
 
 def _strip_comment(line):
-    """Remove a trailing ``#`` comment that is not inside quotes."""
     out = []
     quote = None
     previous = ""
@@ -85,7 +66,6 @@ def _scalar(text):
 
 
 def _tokenize(text):
-    """(indent, content, line number) for every meaningful line."""
     rows = []
     for number, raw in enumerate(text.splitlines(), 1):
         if "\t" in raw[:len(raw) - len(raw.lstrip())]:
@@ -100,7 +80,6 @@ def _tokenize(text):
 
 
 def _parse_block(rows, start, indent):
-    """Parse one block at ``indent``; returns (value, next row index)."""
     if start >= len(rows):
         return None, start
 
@@ -184,11 +163,10 @@ def _parse_mapping(rows, start, indent):
 
 
 def loads(text):
-    """Parse a YAML document into Python data."""
     if _pyyaml is not None:
         try:
             return _pyyaml.safe_load(text) or {}
-        except Exception as error:                      # noqa: BLE001
+        except Exception as error:
             raise YamlError(str(error))
 
     rows = _tokenize(text)
@@ -230,13 +208,12 @@ def _comment_lines(value):
 
 
 def dumps(data, indent=0, comments=True):
-    """Render data as YAML, turning ``//`` keys into ``#`` comments."""
     pad = " " * indent
     lines = []
 
     if isinstance(data, dict):
-        # "//name" documents "name"; in YAML a comment belongs above the key
-        # it describes, so those are pulled out and emitted there instead.
+
+
         docs = {key[2:]: value for key, value in data.items()
                 if isinstance(key, str) and key.startswith("//") and key != "//"}
 

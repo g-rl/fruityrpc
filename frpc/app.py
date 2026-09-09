@@ -1,5 +1,3 @@
-"""FruityRPC application: the polling loop, logging and CLI."""
-
 import argparse
 import ctypes
 import json
@@ -53,7 +51,6 @@ _mutex = None
 
 
 def claim_single_instance():
-    """Return True when this is the only FruityRPC running."""
     global _mutex
     if sys.platform != "win32":
         return True
@@ -149,13 +146,6 @@ class FruityRPC(object):
 
 
     def maintain_bridge(self, snapshot, deep_mode):
-        """Keep deep mode working without anyone opening FL's settings.
-
-        The bridge script is copied into FL's Hardware folder whenever it is
-        missing or out of date, and attached to an unused MIDI input while FL
-        is closed - FL rewrites those keys from memory on exit, so binding
-        while it runs would be discarded.
-        """
         detection = self.config.get("detection", {})
         now = time.time()
         if now - self._bridge_checked < 20.0:

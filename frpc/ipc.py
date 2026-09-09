@@ -1,25 +1,3 @@
-"""Minimal, dependency-free Discord Rich Presence IPC client.
-
-Discord exposes a local IPC endpoint that any process can talk to:
-
-* Windows - the named pipe ``\\\\.\\pipe\\discord-ipc-N`` (N = 0..9)
-* macOS / Linux - the unix socket ``$TMPDIR/discord-ipc-N``
-
-The protocol is a stream of frames::
-
-    <uint32 opcode><uint32 payload length><utf-8 json payload>
-
-Opcodes: 0 handshake, 1 frame, 2 close, 3 ping, 4 pong.
-
-This module implements just enough of it to set and clear an activity, so
-FruityRPC needs nothing from PyPI - a stock Python install is enough.
-
-Reads never block: on Windows the pipe is peeked with ``PeekNamedPipe`` before
-reading, on POSIX the socket is polled with ``select``. That keeps the polling
-loop responsive and, importantly, means closing the connection never has to
-wait for a reader stuck inside ``read()``.
-"""
-
 import ctypes
 import json
 import os
@@ -50,11 +28,10 @@ if is_windows:
 
 
 class IPCError(Exception):
-    """Raised when the Discord connection cannot be used."""
+    pass
 
 
 def _candidate_paths():
-    """Yield the IPC endpoints Discord may be listening on."""
     if is_windows:
         for index in range(10):
             yield r"\\.\pipe\discord-ipc-%d" % index
@@ -80,7 +57,6 @@ def _candidate_paths():
 
 
 class DiscordIPC(object):
-    """A single connection to the local Discord client."""
 
     def __init__(self, client_id, logger=None):
         self.client_id = str(client_id)
@@ -111,7 +87,6 @@ class DiscordIPC(object):
             self._handle = sock.makefile("rwb", 0)
 
     def _available(self):
-        """Bytes ready to be read without blocking."""
         handle = self._handle
         if handle is None:
             return 0
@@ -183,7 +158,6 @@ class DiscordIPC(object):
 
 
     def connect(self):
-        """Try every endpoint; return True once the handshake succeeds."""
         if not self.client_id:
             raise IPCError("no client_id configured")
         last_error = None
@@ -212,11 +186,6 @@ class DiscordIPC(object):
         return False
 
     def drain(self):
-        """Read and discard whatever Discord has sent us.
-
-        Keeps the pipe buffer empty and notices a dropped connection. Replies
-        to pings so long sessions are not dropped as idle.
-        """
         if not self._alive:
             return
         try:
@@ -255,7 +224,6 @@ class DiscordIPC(object):
         })
 
     def set_activity(self, activity):
-        """Send an activity dict, or ``None`` to clear the presence."""
         if not self._alive:
             raise IPCError("not connected")
         self._command("SET_ACTIVITY", {
@@ -266,11 +234,6 @@ class DiscordIPC(object):
 
 
 class PresenceLink(object):
-    """Keeps a :class:`DiscordIPC` alive and retries in the background.
-
-    ``update(activity)`` is safe to call at any time: when Discord is not
-    running the payload is remembered and pushed as soon as it comes back.
-    """
 
     def __init__(self, client_id, logger=None, retry_interval=15.0):
         self.client_id = client_id
@@ -323,7 +286,6 @@ class PresenceLink(object):
         return False
 
     def update(self, activity, force=False):
-        """Push ``activity`` if it differs from what Discord already shows."""
         payload = json.dumps(activity, sort_keys=True)
         if not force and payload == self._last_sent and self.connected:
             self._ipc.drain()

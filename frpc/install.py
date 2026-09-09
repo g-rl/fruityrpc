@@ -1,10 +1,3 @@
-"""Installer helper for the optional FL Studio MIDI script (deep mode).
-
-FL Studio loads MIDI control scripts from a ``Hardware`` folder inside its
-settings directory. The location moved over the years, so every known variant
-is checked and the script is copied into each one that exists.
-"""
-
 import os
 import re
 import sys
@@ -22,11 +15,6 @@ def _package_root():
 
 
 def source_script():
-    """The bridge script that gets copied into FL Studio's Hardware folder.
-
-    It travels inside the packaged build, so look there first and fall back
-    to the folder next to FruityRPC for a source checkout.
-    """
     bundled = os.path.join(_package_root(), "fl-script", script_name)
     if os.path.isfile(bundled):
         return bundled
@@ -34,7 +22,6 @@ def source_script():
 
 
 def hardware_dirs():
-    """Every plausible FL Studio 'Settings/Hardware' folder on this machine."""
     candidates = []
     appdata = os.environ.get("APPDATA")
     userprofile = os.environ.get("USERPROFILE") or os.path.expanduser("~")
@@ -59,7 +46,6 @@ def hardware_dirs():
 
 
 def installed_scripts():
-    """Paths where the bridge script is already installed."""
     found = []
     for hardware in hardware_dirs():
         candidate = os.path.join(hardware, "FruityRPC", script_name)
@@ -69,7 +55,6 @@ def installed_scripts():
 
 
 def midi_input_ports():
-    """Names of the MIDI inputs FL Studio can bind the script to."""
     try:
         import ctypes
 
@@ -93,12 +78,6 @@ def midi_input_ports():
 
 
 def midi_bindings():
-    """What FL Studio has bound to each MIDI input.
-
-    FL keeps this under HKCU\\Software\\Image-Line\\FL Studio <n>\\Devices\\
-    MIDI input\\<device>, where ScriptFolder names the controller script.
-    An empty ScriptFolder means no script is attached to that port.
-    """
     try:
         import winreg
     except ImportError:
@@ -154,7 +133,6 @@ def midi_bindings():
 
 
 def script_source(state_dir=None):
-    """The bridge script with the data folder baked into it."""
     with open(source_script(), "r", encoding="utf-8") as handle:
         script = handle.read()
     state_dir = state_dir or config_module.config_dir()
@@ -164,7 +142,6 @@ def script_source(state_dir=None):
 
 
 def ensure_script_installed():
-    """Install or refresh the bridge script. Returns the paths it wrote."""
     if not os.path.isfile(source_script()):
         return []
     try:
@@ -193,13 +170,6 @@ def ensure_script_installed():
 
 
 def bindable_rows():
-    """Ports the bridge may attach itself to.
-
-    A port qualifies only when it is present on the machine right now, FL has
-    it enabled, and nothing else claims it. Ports that already run someone
-    else's controller script, and devices FL remembers but that are not
-    plugged in, are left alone.
-    """
     available = {name.strip().lower() for name in midi_input_ports()}
     if not available:
         return []
@@ -209,12 +179,6 @@ def bindable_rows():
 
 
 def primary_binding_rows():
-    """The single MIDI input to attach to, across every FL Studio version.
-
-    "Primary" is the first connected port that FL has enabled and that is
-    free - the same order Windows reports the devices in. Returns an empty
-    list when nothing is connected, so no binding is written at all.
-    """
     rows = bindable_rows()
     if not rows:
         return []
@@ -229,7 +193,6 @@ def primary_binding_rows():
 
 
 def apply_binding(rows, folder="FruityRPC"):
-    """Write ScriptFolder on the given device keys. Returns those changed."""
     try:
         import winreg
     except ImportError:
@@ -251,13 +214,6 @@ def apply_binding(rows, folder="FruityRPC"):
 
 
 def bind_midi_script(device_name=None, folder="FruityRPC"):
-    """Attach the bridge script to a MIDI input without using FL's UI.
-
-    Writes ScriptFolder on the device key FL Studio itself uses, which is
-    exactly what picking a Controller type in MIDI settings does. FL must be
-    closed: it rewrites these keys from memory when it exits, so a change made
-    while it runs is thrown away.
-    """
     if os.name != "nt":
         print("  registry access is windows only")
         return 1
