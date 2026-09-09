@@ -343,7 +343,7 @@ class FLWatcher(object):
         name = os.path.basename(path).lower()
         by_process = bool(name) and (self._process_re.match(name)
                                      or name in self._extra_names)
-        if by_class or by_title or by_process:
+        if by_class or by_process:
             return pid.value, path, by_class
         return None
 
