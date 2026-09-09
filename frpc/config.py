@@ -258,6 +258,14 @@ defaults = {
             "was saved. Deep mode, when available, always wins."
         ],
 
+        "project_search_paths": [],
+        "//project_search_paths": [
+            "Extra folders to look in for the project file. FL only writes",
+            "its recent-files list when it exits, so a project saved this",
+            "session is found by searching the folders projects normally",
+            "live in. Add yours here if it sits somewhere unusual."
+        ],
+
         "use_midi_state": True,
         "//use_midi_state": [
             "Read live transport data (tempo, playing, recording, bar/beat,",

@@ -92,7 +92,10 @@ class FruityRPC(object):
             os.path.join(config_module.config_dir(), "assets.json"), self.log)
         self.catalog.refresh(force=True)
         self.builder = PresenceBuilder(self.config, self.log, self.catalog)
-        self.facts = ProjectFacts(self.log)
+        self.facts = ProjectFacts(
+            self.log,
+            self.config.get("detection", {}).get(
+                "project_search_paths", []))
         self.midi = MidiState(
             config_module.state_path(),
             self.config.get("detection", {}).get("midi_state_max_age", 6.0),
@@ -123,6 +126,9 @@ class FruityRPC(object):
         old_client = self.config.get("client_id")
         self.config = new_config
         self.watcher.reconfigure(new_config)
+        self.facts.search_paths = list(
+            new_config.get("detection", {}).get(
+                "project_search_paths", []) or [])
         self.builder.reconfigure(new_config)
         self.midi.reconfigure(
             config_module.state_path(),
@@ -286,6 +292,9 @@ def diagnose(app):
     midi = app.midi.read() or {}
     if not midi:
         midi = app.facts.read(snapshot.get("project"))
+        if not midi:
+            app.facts.wait()
+            midi = app.facts.read(snapshot.get("project"))
     activity, status, variables = app.builder.build(snapshot, midi)
 
     print("FruityRPC %s - diagnostics" % app_version)

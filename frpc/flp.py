@@ -1,5 +1,6 @@
 import os
 import struct
+import threading
 import time
 
 event_new_channel = 64
@@ -53,20 +54,113 @@ def recent_projects():
     return found
 
 
-def find_project(name):
-    if not name:
+search_depth = 4
+search_dir_budget = 4000
+search_time_budget = 3.0
+search_retry_seconds = 20.0
+skip_folders = {"backup", "__pycache__", "node_modules", "$recycle.bin",
+                "system volume information", "windows", "program files",
+                "program files (x86)", "appdata", "packages", "temp"}
+
+
+def _is_drive_root(path):
+    trimmed = path.rstrip(os.sep + "/")
+    return os.path.dirname(trimmed) == trimmed
+
+
+def search_roots(extra=()):
+    """Folders worth walking for a project file, nearest first.
+
+    Drive roots are deliberately left out: walking one costs seconds, and a
+    project always sits somewhere below a folder FL has opened before.
+    """
+    roots = []
+
+    def add(folder):
+        if not folder:
+            return
+        folder = os.path.abspath(folder)
+        if folder in roots or _is_drive_root(folder):
+            return
+        if os.path.isdir(folder):
+            roots.append(folder)
+
+    for path in extra or ():
+        add(path)
+
+    for path in recent_projects():
+        folder = os.path.dirname(path)
+        add(folder)
+        add(os.path.dirname(folder))
+
+    userprofile = os.environ.get("USERPROFILE") or os.path.expanduser("~")
+    for documents in (os.path.join(userprofile, "Documents"),
+                      os.path.join(userprofile, "OneDrive", "Documents")):
+        add(os.path.join(documents, "Image-Line", "FL Studio", "Projects"))
+    return roots
+
+
+def search_disk(name, extra=()):
+    """Look for a project FL has saved but not yet listed as recent.
+
+    FL only rewrites 'Recent files.scr' when it exits, so a project saved
+    during this session cannot be resolved from it. The walk is bounded by
+    both a folder count and a deadline so it can never hold anything up.
+    """
+    wanted = os.path.basename(name).strip().lower()
+    if not wanted:
         return ""
+    if not wanted.endswith(".flp"):
+        wanted += ".flp"
+
+    deadline = time.time() + search_time_budget
+    budget = search_dir_budget
+    best = ""
+    best_stamp = -1.0
+
+    for root in search_roots(extra):
+        base_depth = root.count(os.sep)
+        for folder, folders, files in os.walk(root):
+            budget -= 1
+            if budget <= 0 or time.time() > deadline:
+                return best
+            if folder.count(os.sep) - base_depth >= search_depth:
+                folders[:] = []
+            else:
+                folders[:] = [item for item in folders
+                              if item.lower() not in skip_folders
+                              and not item.startswith((".", "$"))]
+            for item in files:
+                if item.lower() != wanted:
+                    continue
+                candidate = os.path.join(folder, item)
+                try:
+                    stamp = os.path.getmtime(candidate)
+                except OSError:
+                    continue
+                if stamp > best_stamp:
+                    best_stamp = stamp
+                    best = candidate
+    return best
+
+
+def find_recent(name):
     wanted = os.path.basename(name).strip().lower()
     if not wanted:
         return ""
     stem = wanted[:-4] if wanted.endswith(".flp") else wanted
-
     for path in recent_projects():
         base = os.path.basename(path).lower()
         if base == wanted or base == stem + ".flp":
             if os.path.isfile(path):
                 return path
     return ""
+
+
+def find_project(name, extra=()):
+    if not name:
+        return ""
+    return find_recent(name) or search_disk(name, extra)
 
 
 def _read_events(data):
@@ -181,12 +275,60 @@ def parse(path):
 
 class ProjectFacts(object):
 
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, search_paths=()):
         self.log = logger
+        self.search_paths = list(search_paths or [])
         self._path = ""
         self._stamp = None
         self._facts = {}
         self._missing = set()
+        self._lock = threading.Lock()
+        self._thread = None
+        self._resolved = {}
+        self._attempts = {}
+
+    def _resolve(self, project_name):
+        with self._lock:
+            known = self._resolved.get(project_name)
+            if known and os.path.isfile(known):
+                return known
+            if self._thread and self._thread.is_alive():
+                return ""
+            last = self._attempts.get(project_name, 0.0)
+            if last and time.time() - last < search_retry_seconds:
+                return ""
+
+        quick = find_recent(project_name)
+        if quick:
+            with self._lock:
+                self._resolved[project_name] = quick
+            return quick
+
+        def worker():
+            found = search_disk(project_name, self.search_paths)
+            with self._lock:
+                self._attempts[project_name] = time.time()
+                if found:
+                    self._resolved[project_name] = found
+            if not self.log:
+                return
+            if found:
+                self.log.info("found the project on disk: %s" % found)
+            elif project_name not in self._missing:
+                self._missing.add(project_name)
+                self.log.debug("no saved file found for %r" % project_name)
+
+        with self._lock:
+            self._thread = threading.Thread(target=worker, name="flp-search",
+                                            daemon=True)
+            self._thread.start()
+        return ""
+
+    def wait(self, timeout=5.0):
+        with self._lock:
+            thread = self._thread
+        if thread and thread.is_alive():
+            thread.join(timeout)
 
     def read(self, project_name):
         if not project_name:
@@ -195,13 +337,8 @@ class ProjectFacts(object):
         path = self._path
         if not path or os.path.basename(path).lower() != \
                 os.path.basename(project_name).strip().lower():
-            path = find_project(project_name)
+            path = self._resolve(project_name)
             if not path:
-                if project_name not in self._missing:
-                    self._missing.add(project_name)
-                    if self.log:
-                        self.log.debug("no saved file found for %r"
-                                       % project_name)
                 self._path = ""
                 self._facts = {}
                 return {}
