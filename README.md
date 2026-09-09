@@ -4,7 +4,7 @@ discord rich presence for **fl studio**, made by [nyli](https://github.com/g-rl)
 
 - works with **every fl studio version**, 32-bit, 64-bit and portable
 - shows your project, the real build number, what you are doing, and the elapsed time
-- **free and open source**, and it never touches your projects or your audio
+- never touches your projects or your audio
 
 <p align="center">
   <img src="docs/preview.png" alt="fruityrpc on a discord profile" width="320">
@@ -12,17 +12,13 @@ discord rich presence for **fl studio**, made by [nyli](https://github.com/g-rl)
 
 ## download
 
-grab the latest zip from [releases](https://github.com/g-rl/frpc/releases), extract it anywhere, and run `Setup.bat`.
-
-nothing to install — no python, no dependencies.
+grab the latest zip from [releases](https://github.com/g-rl/fruityrpc/releases), extract it anywhere, and run `Setup.bat`.
 
 ## setup
 
 1. run **`Setup.bat`** and follow the three steps it prints
 2. make a discord application at [discord.com/developers](https://discord.com/developers/applications), name it `FL Studio`, upload the images from `assets` under **rich presence > art assets**, and paste the application id into setup
 3. in fl studio: **options > general settings > external tools**, point a row at `FruityRPC.exe` and tick **launch at startup**
-
-that's it. the presence appears the next time you open fl studio.
 
 ## config
 
@@ -52,7 +48,7 @@ fl studio does not tell the outside world what is happening inside a project, so
 
 with it: tempo, play/record, bar:beat, pattern, channel and mixer counts. without it: sounds, patterns and tempo still come from the saved `.flp`.
 
-the binding is only written while fl is **closed**, so quit fl once after installing.
+only written while fl is **closed**, so quit fl once after installing.
 
 ## help
 
@@ -69,5 +65,5 @@ log file: `data\fruityrpc.log`. to stop it: `Stop-FruityRPC.bat`.
 
 ## credits
 
-- [nyli](https://github.com/g-rl) — fruityrpc
+- [nyli](https://x.com/nyli2b) — fruityrpc
 - [image-line](https://www.image-line.com/) — fl studio. you must own a license to use it
