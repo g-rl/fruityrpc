@@ -123,7 +123,7 @@ defaults = {
     ],
     "buttons": [
         {"label": "by nyli", "url": "https://github.com/g-rl"},
-        {"label": "view & download", "url": "https://github.com/g-rl/frpc"},
+        {"label": "view & download", "url": "https://github.com/g-rl/fruityrpc"},
         {"label": "buy fl studio", "url": "https://www.image-line.com/"}
     ],
     "button_rotation_seconds": 60,

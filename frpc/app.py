@@ -16,7 +16,7 @@ from .ipc import PresenceLink
 from .midi_state import MidiState
 from .presence import PresenceBuilder
 
-app_version = "1.0.0"
+app_version = "1.0.2"
 
 
 def setup_logging(level_name, path, to_console):

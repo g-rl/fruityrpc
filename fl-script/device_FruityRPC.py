@@ -1,5 +1,5 @@
 # name=FruityRPC
-# url=https://github.com/g-rl/frpc
+# url=https://github.com/g-rl/fruityrpc
 
 import json
 import os

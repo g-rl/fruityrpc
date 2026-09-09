@@ -33,7 +33,7 @@ buttons:
   - label: by nyli
     url: "https://github.com/g-rl"
   - label: view & download
-    url: "https://github.com/g-rl/frpc"
+    url: "https://github.com/g-rl/fruityrpc"
 ```
 
 - **icon** — the big picture. any art asset name, or a list with `random` / `cycle`. anything that is not a real asset falls back to `fl_logo`
