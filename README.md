@@ -6,6 +6,10 @@ discord rich presence for **fl studio**, made by [nyli](https://github.com/g-rl)
 - shows your project, the real build number, what you are doing, and the elapsed time
 - **free and open source**, and it never touches your projects or your audio
 
+<p align="center">
+  <img src="docs/preview.png" alt="fruityrpc on a discord profile" width="320">
+</p>
+
 ## download
 
 grab the latest zip from [releases](https://github.com/g-rl/frpc/releases), extract it anywhere, and run `Setup.bat`.
